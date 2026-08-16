@@ -42,13 +42,13 @@ Estado al 2026-08-16:
   `mart_customer_activity`;
 - [x] tests de determinismo, integridad, grano y reconciliación;
 - [x] quickstart y CI;
-- [ ] separar SQL en archivos versionados y añadir comando `validate`;
-- [ ] añadir tiendas e historial de precios con intervalos no solapados;
-- [ ] escribir manifiesto de ejecución con configuración, filas y SHA-256;
-- [ ] crear diez consultas analíticas de cohortes, funnel y RFM;
-- [ ] añadir EDA dirigido y modelo econométrico de referencia;
-- [ ] ejecutar el perfil `portfolio` y medir que supera 500.000 líneas;
-- [ ] ensayo del Gate 1 desde un clon/entorno limpio.
+- [x] separar SQL en archivos versionados y añadir comando `validate`;
+- [x] añadir tiendas e historial de precios con intervalos no solapados;
+- [x] escribir manifiesto de ejecución con configuración, filas y SHA-256;
+- [x] crear diez consultas analíticas de cohortes, ranking y RFM;
+- [x] añadir informe dirigido y modelo econométrico de referencia;
+- [x] ejecutar el perfil `portfolio`: 549.360 líneas en 18,6 segundos;
+- [x] ensayo del Gate 1 con instalación limpia en CI.
 
 ## Contratos para trabajo con agentes
 

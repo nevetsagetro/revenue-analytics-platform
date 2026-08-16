@@ -10,6 +10,7 @@ class GeneratorConfig:
     end_date: date = date(2025, 12, 31)
     n_customers: int = 200
     n_products: int = 24
+    n_stores: int = 8
     n_transactions: int = 2_000
 
     @classmethod
@@ -17,7 +18,13 @@ class GeneratorConfig:
         if profile == "demo":
             return cls(seed=seed)
         if profile == "portfolio":
-            return cls(seed=seed, n_customers=50_000, n_products=500, n_transactions=250_000)
+            return cls(
+                seed=seed,
+                n_customers=50_000,
+                n_products=500,
+                n_stores=40,
+                n_transactions=250_000,
+            )
         raise ValueError(f"Unknown profile: {profile}")
 
 

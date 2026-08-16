@@ -2,60 +2,15 @@ import csv
 import sqlite3
 from pathlib import Path
 
-SCHEMA_SQL = """
-PRAGMA foreign_keys = ON;
-CREATE TABLE raw_customers (
-  customer_id TEXT PRIMARY KEY, signup_date TEXT NOT NULL,
-  region TEXT NOT NULL, activity_score REAL NOT NULL CHECK(activity_score BETWEEN 0 AND 1)
-);
-CREATE TABLE raw_products (
-  product_id TEXT PRIMARY KEY, sku TEXT NOT NULL UNIQUE, category TEXT NOT NULL,
-  base_price_cents INTEGER NOT NULL CHECK(base_price_cents > 0),
-  unit_cost_cents INTEGER NOT NULL CHECK(unit_cost_cents > 0),
-  latent_elasticity REAL NOT NULL
-);
-CREATE TABLE raw_transactions (
-  transaction_id TEXT PRIMARY KEY,
-  customer_id TEXT NOT NULL REFERENCES raw_customers(customer_id),
-  transaction_date TEXT NOT NULL, channel TEXT NOT NULL CHECK(channel IN ('store', 'online')),
-  region TEXT NOT NULL
-);
-CREATE TABLE raw_transaction_lines (
-  line_id TEXT PRIMARY KEY,
-  transaction_id TEXT NOT NULL REFERENCES raw_transactions(transaction_id),
-  product_id TEXT NOT NULL REFERENCES raw_products(product_id),
-  quantity INTEGER NOT NULL CHECK(quantity > 0),
-  unit_price_cents INTEGER NOT NULL CHECK(unit_price_cents > 0),
-  discount_pct REAL NOT NULL CHECK(discount_pct BETWEEN 0 AND 1),
-  promotion INTEGER NOT NULL CHECK(promotion IN (0, 1))
-);
-CREATE VIEW stg_sales AS
-SELECT l.line_id, t.transaction_id, t.customer_id, t.transaction_date, t.channel, t.region,
-       l.product_id, p.category, l.quantity, l.unit_price_cents, l.discount_pct, l.promotion,
-       l.quantity * l.unit_price_cents AS line_revenue_cents,
-       l.quantity * (l.unit_price_cents - p.unit_cost_cents) AS line_margin_cents
-FROM raw_transaction_lines l
-JOIN raw_transactions t USING (transaction_id)
-JOIN raw_products p USING (product_id);
-CREATE TABLE mart_sales_daily AS
-SELECT transaction_date, product_id, category, channel,
-       SUM(quantity) AS units,
-       SUM(line_revenue_cents) AS revenue_cents,
-       SUM(line_margin_cents) AS margin_cents,
-       COUNT(DISTINCT transaction_id) AS tickets
-FROM stg_sales GROUP BY transaction_date, product_id, category, channel;
-CREATE UNIQUE INDEX mart_sales_daily_grain
-ON mart_sales_daily(transaction_date, product_id, channel);
-CREATE TABLE mart_customer_activity AS
-SELECT customer_id, MAX(transaction_date) AS last_purchase_date,
-       COUNT(DISTINCT transaction_id) AS frequency,
-       SUM(line_revenue_cents) AS monetary_cents,
-       COUNT(DISTINCT product_id) AS product_breadth
-FROM stg_sales GROUP BY customer_id;
-CREATE UNIQUE INDEX mart_customer_activity_grain ON mart_customer_activity(customer_id);
-"""
-
-
+SQL_DIR = Path(__file__).with_name("sql")
+TABLE_FILES = {
+    "raw_customers": "customers.csv",
+    "raw_products": "products.csv",
+    "raw_stores": "stores.csv",
+    "raw_price_history": "price_history.csv",
+    "raw_transactions": "transactions.csv",
+    "raw_transaction_lines": "transaction_lines.csv",
+}
 TABLE_COLUMNS = {
     "raw_customers": ("customer_id", "signup_date", "region", "activity_score"),
     "raw_products": (
@@ -66,13 +21,16 @@ TABLE_COLUMNS = {
         "unit_cost_cents",
         "latent_elasticity",
     ),
-    "raw_transactions": (
-        "transaction_id",
-        "customer_id",
-        "transaction_date",
+    "raw_stores": ("store_id", "store_name", "channel", "region"),
+    "raw_price_history": (
+        "price_id",
+        "product_id",
         "channel",
-        "region",
+        "valid_from",
+        "valid_to",
+        "list_price_cents",
     ),
+    "raw_transactions": ("transaction_id", "customer_id", "store_id", "transaction_date"),
     "raw_transaction_lines": (
         "line_id",
         "transaction_id",
@@ -83,6 +41,10 @@ TABLE_COLUMNS = {
         "promotion",
     ),
 }
+
+
+def _read_sql(filename: str) -> str:
+    return (SQL_DIR / filename).read_text(encoding="utf-8")
 
 
 def _load_csv(connection: sqlite3.Connection, table: str, path: Path) -> None:
@@ -100,16 +62,11 @@ def build_warehouse(raw_dir: Path, database: Path) -> None:
     database.unlink(missing_ok=True)
     with sqlite3.connect(database) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
-        connection.executescript(SCHEMA_SQL.split("CREATE VIEW stg_sales", maxsplit=1)[0])
-        for table, filename in (
-            ("raw_customers", "customers.csv"),
-            ("raw_products", "products.csv"),
-            ("raw_transactions", "transactions.csv"),
-            ("raw_transaction_lines", "transaction_lines.csv"),
-        ):
+        connection.executescript(_read_sql("001_raw_schema.sql"))
+        for table, filename in TABLE_FILES.items():
             _load_csv(connection, table, raw_dir / filename)
-        staging_sql = SCHEMA_SQL.split("CREATE VIEW stg_sales", maxsplit=1)[1]
-        connection.executescript("CREATE VIEW stg_sales" + staging_sql)
+        connection.executescript(_read_sql("002_staging.sql"))
+        connection.executescript(_read_sql("003_marts.sql"))
 
 
 def business_summary(database: Path) -> dict[str, int]:
@@ -121,3 +78,18 @@ def business_summary(database: Path) -> dict[str, int]:
         ).fetchone()
     assert row is not None
     return dict(zip(("revenue_cents", "units", "tickets", "customers"), row, strict=True))
+
+
+def run_analysis(database: Path, query_name: str) -> tuple[list[str], list[tuple[object, ...]]]:
+    query_path = SQL_DIR / "analysis" / f"{query_name}.sql"
+    if not query_path.is_file():
+        available = ", ".join(available_analyses())
+        raise ValueError(f"Unknown analysis: {query_name}. Available: {available}")
+    with sqlite3.connect(database) as connection:
+        cursor = connection.execute(query_path.read_text(encoding="utf-8"))
+        columns = [item[0] for item in cursor.description]
+        return columns, cursor.fetchall()
+
+
+def available_analyses() -> list[str]:
+    return sorted(path.stem for path in (SQL_DIR / "analysis").glob("*.sql"))

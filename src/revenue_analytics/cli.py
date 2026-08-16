@@ -3,7 +3,14 @@ from pathlib import Path
 
 from revenue_analytics.config import GeneratorConfig, ProjectPaths
 from revenue_analytics.generator import generate_dataset
-from revenue_analytics.warehouse import build_warehouse, business_summary
+from revenue_analytics.quality import validate_all
+from revenue_analytics.reporting import build_business_report
+from revenue_analytics.warehouse import (
+    available_analyses,
+    build_warehouse,
+    business_summary,
+    run_analysis,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -15,6 +22,15 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument("--profile", choices=("demo", "portfolio"), default="demo")
     inspect = subparsers.add_parser("inspect", help="show warehouse business totals")
     inspect.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
+    validate = subparsers.add_parser("validate", help="validate raw data and warehouse contracts")
+    validate.add_argument("--data-dir", type=Path, default=Path("data"))
+    analyze = subparsers.add_parser("analyze", help="run a versioned analytical query")
+    analyze.add_argument("query", choices=available_analyses())
+    analyze.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
+    analyze.add_argument("--limit", type=int, default=20)
+    report = subparsers.add_parser("report", help="build the initial business and OLS report")
+    report.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
+    report.add_argument("--output", type=Path, default=Path("artifacts/business-report.md"))
     return parser
 
 
@@ -35,5 +51,19 @@ def main() -> None:
         print(f"Generated {len(dataset.files)} deterministic tables in {paths.raw}")
         print(f"Warehouse: {paths.warehouse}")
         _print_summary(business_summary(paths.warehouse))
-    else:
+    elif args.command == "inspect":
         _print_summary(business_summary(args.database))
+    elif args.command == "validate":
+        paths = ProjectPaths(args.data_dir)
+        result = validate_all(paths.raw, paths.warehouse)
+        for check, passed in result.checks.items():
+            print(f"{'PASS' if passed else 'FAIL'} {check}")
+        if not result.passed:
+            raise SystemExit(1)
+    elif args.command == "analyze":
+        columns, rows = run_analysis(args.database, args.query)
+        print(" | ".join(columns))
+        for row in rows[: args.limit]:
+            print(" | ".join(str(value) for value in row))
+    else:
+        print(build_business_report(args.database, args.output))

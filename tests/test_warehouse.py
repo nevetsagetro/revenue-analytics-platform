@@ -4,7 +4,13 @@ from pathlib import Path
 
 from revenue_analytics.config import GeneratorConfig
 from revenue_analytics.generator import generate_dataset
-from revenue_analytics.warehouse import build_warehouse, business_summary
+from revenue_analytics.quality import validate_all
+from revenue_analytics.warehouse import (
+    available_analyses,
+    build_warehouse,
+    business_summary,
+    run_analysis,
+)
 
 
 def test_warehouse_preserves_grains_and_totals(tmp_path: Path) -> None:
@@ -39,3 +45,19 @@ def test_summary_matches_raw_line_calculation(tmp_path: Path) -> None:
             int(row["quantity"]) * int(row["unit_price_cents"]) for row in csv.DictReader(handle)
         )
     assert business_summary(database)["revenue_cents"] == expected
+
+
+def test_quality_gate_and_analyses_pass(tmp_path: Path) -> None:
+    raw = tmp_path / "raw"
+    database = tmp_path / "warehouse.db"
+    generate_dataset(
+        GeneratorConfig(seed=19, n_customers=12, n_products=8, n_stores=4, n_transactions=60),
+        raw,
+    )
+    build_warehouse(raw, database)
+    result = validate_all(raw, database)
+    assert result.passed, [name for name, passed in result.checks.items() if not passed]
+    assert len(available_analyses()) == 10
+    columns, rows = run_analysis(database, "01_monthly_revenue")
+    assert columns == ["month", "revenue_eur"]
+    assert rows
