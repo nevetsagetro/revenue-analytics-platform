@@ -30,6 +30,8 @@ cargar.
 - Promociones elevan conversión y reducen precio entre 5% y 25%.
 - Los precios cambian trimestralmente y sus intervalos no se solapan.
 - La actividad del cliente es heterogénea y algunos clientes dejan de comprar.
+- `latent_churn_date` registra la verdad sintética para auditoría del generador, pero
+  está prohibida como feature del modelo de churn.
 - Los resultados sirven para comprobar mecanismos del sistema, no para afirmar impacto
   comercial real.
 

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from revenue_analytics.config import GeneratorConfig, ProjectPaths
 from revenue_analytics.generator import generate_dataset
+from revenue_analytics.predictive import build_predictive_artifacts
 from revenue_analytics.quality import validate_all
 from revenue_analytics.reporting import build_business_report
 from revenue_analytics.warehouse import (
@@ -31,6 +32,11 @@ def _parser() -> argparse.ArgumentParser:
     report = subparsers.add_parser("report", help="build the initial business and OLS report")
     report.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
     report.add_argument("--output", type=Path, default=Path("artifacts/business-report.md"))
+    predict = subparsers.add_parser(
+        "predict", help="build forecasting, churn, and segment artifacts"
+    )
+    predict.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
+    predict.add_argument("--output-dir", type=Path, default=Path("artifacts/predictive"))
     return parser
 
 
@@ -65,5 +71,9 @@ def main() -> None:
         print(" | ".join(columns))
         for row in rows[: args.limit]:
             print(" | ".join(str(value) for value in row))
-    else:
+    elif args.command == "report":
         print(build_business_report(args.database, args.output))
+    else:
+        artifacts = build_predictive_artifacts(args.database, args.output_dir)
+        for name, path in artifacts.items():
+            print(f"{name}: {path}")

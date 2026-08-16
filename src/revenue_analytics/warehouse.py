@@ -12,7 +12,13 @@ TABLE_FILES = {
     "raw_transaction_lines": "transaction_lines.csv",
 }
 TABLE_COLUMNS = {
-    "raw_customers": ("customer_id", "signup_date", "region", "activity_score"),
+    "raw_customers": (
+        "customer_id",
+        "signup_date",
+        "region",
+        "activity_score",
+        "latent_churn_date",
+    ),
     "raw_products": (
         "product_id",
         "sku",

@@ -22,7 +22,13 @@ class GeneratedDataset:
 REGIONS = ("norte", "centro", "este", "sur")
 CATEGORIES = ("bebidas", "despensa", "hogar", "cuidado_personal")
 TABLE_FIELDS = {
-    "customers": ("customer_id", "signup_date", "region", "activity_score"),
+    "customers": (
+        "customer_id",
+        "signup_date",
+        "region",
+        "activity_score",
+        "latent_churn_date",
+    ),
     "products": (
         "product_id",
         "sku",
@@ -97,15 +103,29 @@ def generate_dataset(config: GeneratorConfig, output_dir: Path) -> GeneratedData
     output_dir.mkdir(parents=True, exist_ok=True)
     days = (config.end_date - config.start_date).days + 1
 
-    customers = [
-        {
-            "customer_id": f"C{i:06d}",
-            "signup_date": (config.start_date - timedelta(days=rng.randrange(730))).isoformat(),
-            "region": rng.choice(REGIONS),
-            "activity_score": f"{rng.betavariate(2, 5):.6f}",
-        }
-        for i in range(1, config.n_customers + 1)
-    ]
+    customers: list[dict[str, object]] = []
+    customer_weights: list[float] = []
+    active_until: dict[str, date] = {}
+    for i in range(1, config.n_customers + 1):
+        activity_score = rng.betavariate(2, 5)
+        churns = rng.random() < 0.55 * (1 - activity_score)
+        churn_date = (
+            config.start_date + timedelta(days=rng.randrange(days // 2, days))
+            if churns
+            else config.end_date
+        )
+        customer_id = f"C{i:06d}"
+        customers.append(
+            {
+                "customer_id": customer_id,
+                "signup_date": (config.start_date - timedelta(days=rng.randrange(730))).isoformat(),
+                "region": rng.choice(REGIONS),
+                "activity_score": f"{activity_score:.6f}",
+                "latent_churn_date": churn_date.isoformat() if churns else "",
+            }
+        )
+        customer_weights.append(0.05 + activity_score**1.5)
+        active_until[customer_id] = churn_date
     category_elasticity = dict(zip(CATEGORIES, (-1.1, -0.8, -1.4, -1.8), strict=True))
     products: list[dict[str, object]] = []
     for i in range(1, config.n_products + 1):
@@ -168,10 +188,12 @@ def generate_dataset(config: GeneratorConfig, output_dir: Path) -> GeneratedData
 
     transactions: list[dict[str, object]] = []
     lines: list[dict[str, object]] = []
-    for ticket_number in range(1, config.n_transactions + 1):
+    selected_customers = rng.choices(customers, weights=customer_weights, k=config.n_transactions)
+    for ticket_number, customer in enumerate(selected_customers, start=1):
         transaction_id = f"T{ticket_number:09d}"
-        customer = rng.choice(customers)
-        transaction_date = config.start_date + timedelta(days=rng.randrange(days))
+        customer_end = active_until[str(customer["customer_id"])]
+        customer_days = (customer_end - config.start_date).days + 1
+        transaction_date = config.start_date + timedelta(days=rng.randrange(customer_days))
         online = rng.random() < 0.3
         candidate_stores = [
             store

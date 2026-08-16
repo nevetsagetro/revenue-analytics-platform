@@ -21,6 +21,8 @@ PYTHONPATH=src python -m revenue_analytics analyze 06_customer_rfm \
   --database data/warehouse/revenue.db --limit 10
 PYTHONPATH=src python -m revenue_analytics report \
   --database data/warehouse/revenue.db --output artifacts/business-report.md
+PYTHONPATH=src python -m revenue_analytics predict \
+  --database data/warehouse/revenue.db --output-dir artifacts/predictive
 ```
 
 Salida esperada: seis CSV y `manifest.json` bajo `data/raw/`, una base en
@@ -53,6 +55,7 @@ PYTHONPATH=src python -m revenue_analytics demo --profile portfolio --output-dir
 - [Modelo de datos](docs/data-model.md)
 - [ADR-001: stack tecnológico](docs/adr/001-stack-tecnologico.md)
 - [Evidencia del Gate 1](docs/gates/gate-1.md)
+- [Evidencia predictiva v0.2](docs/gates/gate-2-predictive.md)
 
 La entrega actual cubre el vertical slice foundation: generación, contratos, SQL,
 marts, consultas, validación e informe inicial. Forecasting, churn y causalidad se

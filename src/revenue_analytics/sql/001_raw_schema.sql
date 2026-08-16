@@ -4,7 +4,8 @@ CREATE TABLE raw_customers (
   customer_id TEXT PRIMARY KEY,
   signup_date TEXT NOT NULL,
   region TEXT NOT NULL,
-  activity_score REAL NOT NULL CHECK(activity_score BETWEEN 0 AND 1)
+  activity_score REAL NOT NULL CHECK(activity_score BETWEEN 0 AND 1),
+  latent_churn_date TEXT
 );
 CREATE TABLE raw_products (
   product_id TEXT PRIMARY KEY,

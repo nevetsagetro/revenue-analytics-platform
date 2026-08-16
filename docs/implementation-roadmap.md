@@ -50,6 +50,16 @@ Estado al 2026-08-16:
 - [x] ejecutar el perfil `portfolio`: 549.360 líneas en 18,6 segundos;
 - [x] ensayo del Gate 1 con instalación limpia en CI.
 
+## Release `v0.2-predictive`
+
+- [x] backtesting temporal rolling-origin con cinco candidatos;
+- [x] forecast de ocho semanas y WAPE/MASE contra naïve;
+- [x] snapshots de churn point-in-time con horizonte de 60 días;
+- [x] regresión logística calibrada vs. regla de recencia;
+- [x] scores de churn con fecha de corte explícita;
+- [x] segmentación RFM accionable;
+- [x] artefactos JSON/CSV reproducibles y sin usar `latent_churn_date` como feature.
+
 ## Contratos para trabajo con agentes
 
 El trabajo se reparte por ownership de módulos, nunca por archivos compartidos:
