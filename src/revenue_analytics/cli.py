@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from revenue_analytics.causal import build_causal_artifacts
 from revenue_analytics.config import GeneratorConfig, ProjectPaths
 from revenue_analytics.generator import generate_dataset
 from revenue_analytics.predictive import build_predictive_artifacts
@@ -37,6 +38,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     predict.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
     predict.add_argument("--output-dir", type=Path, default=Path("artifacts/predictive"))
+    causal = subparsers.add_parser("causal", help="build elasticity and experiment artifacts")
+    causal.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
+    causal.add_argument("--output-dir", type=Path, default=Path("artifacts/causal"))
     return parser
 
 
@@ -73,7 +77,11 @@ def main() -> None:
             print(" | ".join(str(value) for value in row))
     elif args.command == "report":
         print(build_business_report(args.database, args.output))
-    else:
+    elif args.command == "predict":
         artifacts = build_predictive_artifacts(args.database, args.output_dir)
+        for name, path in artifacts.items():
+            print(f"{name}: {path}")
+    else:
+        artifacts = build_causal_artifacts(args.database, args.output_dir)
         for name, path in artifacts.items():
             print(f"{name}: {path}")

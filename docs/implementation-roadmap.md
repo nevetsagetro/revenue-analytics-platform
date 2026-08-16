@@ -60,6 +60,15 @@ Estado al 2026-08-16:
 - [x] segmentación RFM accionable;
 - [x] artefactos JSON/CSV reproducibles y sin usar `latent_churn_date` como feature.
 
+## Release `v0.3-causal`
+
+- [x] DAG y controles para precio → demanda;
+- [x] elasticidad log-log con intervalo de confianza;
+- [x] diseño A/B reproducible y cálculo de tamaño muestral;
+- [x] CUPED con medición de reducción de varianza;
+- [x] Difference-in-Differences con verdad sintética conocida;
+- [x] documento que separa asociación, causalidad y recomendación.
+
 ## Contratos para trabajo con agentes
 
 El trabajo se reparte por ownership de módulos, nunca por archivos compartidos:

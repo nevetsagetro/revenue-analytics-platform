@@ -23,6 +23,8 @@ PYTHONPATH=src python -m revenue_analytics report \
   --database data/warehouse/revenue.db --output artifacts/business-report.md
 PYTHONPATH=src python -m revenue_analytics predict \
   --database data/warehouse/revenue.db --output-dir artifacts/predictive
+PYTHONPATH=src python -m revenue_analytics causal \
+  --database data/warehouse/revenue.db --output-dir artifacts/causal
 ```
 
 Salida esperada: seis CSV y `manifest.json` bajo `data/raw/`, una base en
@@ -56,6 +58,7 @@ PYTHONPATH=src python -m revenue_analytics demo --profile portfolio --output-dir
 - [ADR-001: stack tecnológico](docs/adr/001-stack-tecnologico.md)
 - [Evidencia del Gate 1](docs/gates/gate-1.md)
 - [Evidencia predictiva v0.2](docs/gates/gate-2-predictive.md)
+- [Evidencia causal v0.3](docs/gates/gate-3-causal.md)
 
 La entrega actual cubre el vertical slice foundation: generación, contratos, SQL,
 marts, consultas, validación e informe inicial. Forecasting, churn y causalidad se
