@@ -2,7 +2,6 @@ import csv
 import sqlite3
 from pathlib import Path
 
-
 SCHEMA_SQL = """
 PRAGMA foreign_keys = ON;
 CREATE TABLE raw_customers (
@@ -60,15 +59,28 @@ CREATE UNIQUE INDEX mart_customer_activity_grain ON mart_customer_activity(custo
 TABLE_COLUMNS = {
     "raw_customers": ("customer_id", "signup_date", "region", "activity_score"),
     "raw_products": (
-        "product_id", "sku", "category", "base_price_cents", "unit_cost_cents",
+        "product_id",
+        "sku",
+        "category",
+        "base_price_cents",
+        "unit_cost_cents",
         "latent_elasticity",
     ),
     "raw_transactions": (
-        "transaction_id", "customer_id", "transaction_date", "channel", "region",
+        "transaction_id",
+        "customer_id",
+        "transaction_date",
+        "channel",
+        "region",
     ),
     "raw_transaction_lines": (
-        "line_id", "transaction_id", "product_id", "quantity", "unit_price_cents",
-        "discount_pct", "promotion",
+        "line_id",
+        "transaction_id",
+        "product_id",
+        "quantity",
+        "unit_price_cents",
+        "discount_pct",
+        "promotion",
     ),
 }
 
@@ -96,7 +108,8 @@ def build_warehouse(raw_dir: Path, database: Path) -> None:
             ("raw_transaction_lines", "transaction_lines.csv"),
         ):
             _load_csv(connection, table, raw_dir / filename)
-        connection.executescript("CREATE VIEW stg_sales" + SCHEMA_SQL.split("CREATE VIEW stg_sales", maxsplit=1)[1])
+        staging_sql = SCHEMA_SQL.split("CREATE VIEW stg_sales", maxsplit=1)[1]
+        connection.executescript("CREATE VIEW stg_sales" + staging_sql)
 
 
 def business_summary(database: Path) -> dict[str, int]:

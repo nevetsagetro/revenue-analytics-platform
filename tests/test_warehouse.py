@@ -10,9 +10,7 @@ from revenue_analytics.warehouse import build_warehouse, business_summary
 def test_warehouse_preserves_grains_and_totals(tmp_path: Path) -> None:
     raw = tmp_path / "raw"
     database = tmp_path / "warehouse" / "revenue.db"
-    generate_dataset(
-        GeneratorConfig(seed=11, n_customers=15, n_products=8, n_transactions=40), raw
-    )
+    generate_dataset(GeneratorConfig(seed=11, n_customers=15, n_products=8, n_transactions=40), raw)
     build_warehouse(raw, database)
 
     with sqlite3.connect(database) as connection:
@@ -38,7 +36,6 @@ def test_summary_matches_raw_line_calculation(tmp_path: Path) -> None:
     build_warehouse(raw, database)
     with (raw / "transaction_lines.csv").open(newline="", encoding="utf-8") as handle:
         expected = sum(
-            int(row["quantity"]) * int(row["unit_price_cents"])
-            for row in csv.DictReader(handle)
+            int(row["quantity"]) * int(row["unit_price_cents"]) for row in csv.DictReader(handle)
         )
     assert business_summary(database)["revenue_cents"] == expected
