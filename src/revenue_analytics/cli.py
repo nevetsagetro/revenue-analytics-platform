@@ -1,9 +1,11 @@
 import argparse
+import json
 from pathlib import Path
 
 from revenue_analytics.causal import build_causal_artifacts
 from revenue_analytics.config import GeneratorConfig, ProjectPaths
 from revenue_analytics.generator import generate_dataset
+from revenue_analytics.monitoring import build_monitoring_report
 from revenue_analytics.predictive import build_predictive_artifacts
 from revenue_analytics.quality import validate_all
 from revenue_analytics.reporting import build_business_report
@@ -41,6 +43,15 @@ def _parser() -> argparse.ArgumentParser:
     causal = subparsers.add_parser("causal", help="build elasticity and experiment artifacts")
     causal.add_argument("--database", type=Path, default=Path("data/warehouse/revenue.db"))
     causal.add_argument("--output-dir", type=Path, default=Path("artifacts/causal"))
+    monitor = subparsers.add_parser("monitor", help="compare reference and current model outputs")
+    monitor.add_argument("--reference-dir", type=Path, required=True)
+    monitor.add_argument("--current-dir", type=Path, required=True)
+    monitor.add_argument("--output", type=Path, default=Path("artifacts/monitoring.json"))
+    monitor.add_argument("--customers", type=Path)
+    build_all = subparsers.add_parser("build-all", help="run the complete analytical product")
+    build_all.add_argument("--output-dir", type=Path, default=Path("runtime"))
+    build_all.add_argument("--seed", type=int, default=42)
+    build_all.add_argument("--profile", choices=("demo", "portfolio"), default="demo")
     return parser
 
 
@@ -81,7 +92,35 @@ def main() -> None:
         artifacts = build_predictive_artifacts(args.database, args.output_dir)
         for name, path in artifacts.items():
             print(f"{name}: {path}")
-    else:
+    elif args.command == "causal":
         artifacts = build_causal_artifacts(args.database, args.output_dir)
         for name, path in artifacts.items():
             print(f"{name}: {path}")
+    elif args.command == "monitor":
+        report = build_monitoring_report(
+            args.reference_dir,
+            args.current_dir,
+            args.output,
+            customers_csv=args.customers,
+        )
+        print(json.dumps(report, indent=2))
+    else:
+        data_dir = args.output_dir / "data"
+        paths = ProjectPaths(data_dir)
+        config = GeneratorConfig.from_profile(args.profile, args.seed)
+        generate_dataset(config, paths.raw)
+        build_warehouse(paths.raw, paths.warehouse)
+        quality = validate_all(paths.raw, paths.warehouse)
+        if not quality.passed:
+            raise SystemExit("Quality gate failed")
+        build_business_report(paths.warehouse, args.output_dir / "business-report.md")
+        predictive_dir = args.output_dir / "predictive"
+        build_predictive_artifacts(paths.warehouse, predictive_dir)
+        build_causal_artifacts(paths.warehouse, args.output_dir / "causal")
+        build_monitoring_report(
+            predictive_dir,
+            predictive_dir,
+            args.output_dir / "monitoring.json",
+            customers_csv=paths.raw / "customers.csv",
+        )
+        print(f"Complete product built in {args.output_dir}")

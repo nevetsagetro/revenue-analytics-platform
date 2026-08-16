@@ -4,6 +4,8 @@ __pycache__/
 .ruff_cache/
 *.py[cod]
 *.egg-info/
+build/
+dist/
 .coverage
 htmlcov/
 data/raw/*.csv

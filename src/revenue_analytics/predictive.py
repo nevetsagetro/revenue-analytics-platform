@@ -103,6 +103,19 @@ def forecast_next_weeks(database: Path, horizon: int = 8) -> list[dict[str, obje
     return forecasts
 
 
+def naive_forecast_next_weeks(database: Path, horizon: int = 8) -> list[dict[str, object]]:
+    weekly = _weekly_demand(database)
+    last_week, units = weekly[-1]
+    return [
+        {
+            "week_start": (last_week + timedelta(days=7 * step)).isoformat(),
+            "forecast_units": float(units),
+            "model": "naive_fallback",
+        }
+        for step in range(1, horizon + 1)
+    ]
+
+
 def _customer_history(database: Path) -> tuple[date, date, dict[str, list[tuple[date, int]]]]:
     with sqlite3.connect(database) as connection:
         rows = connection.execute(
@@ -355,9 +368,16 @@ def build_predictive_artifacts(database: Path, output_dir: Path) -> dict[str, Pa
         writer = csv.DictWriter(handle, fieldnames=forecasts[0].keys(), lineterminator="\n")
         writer.writeheader()
         writer.writerows(forecasts)
+    fallback_path = output_dir / "fallback_forecast.csv"
+    fallback = naive_forecast_next_weeks(database)
+    with fallback_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fallback[0].keys(), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(fallback)
     return {
         "metrics": metrics_path,
         "segments": segments_path,
         "churn_scores": churn_scores_path,
         "forecast": forecast_path,
+        "fallback_forecast": fallback_path,
     }

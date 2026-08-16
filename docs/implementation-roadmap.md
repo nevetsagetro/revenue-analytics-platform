@@ -69,6 +69,16 @@ Estado al 2026-08-16:
 - [x] Difference-in-Differences con verdad sintética conocida;
 - [x] documento que separa asociación, causalidad y recomendación.
 
+## Releases `v0.4-product` y `v0.5-operations`
+
+- [x] API FastAPI versionada y OpenAPI automática;
+- [x] dashboard ejecutivo conectado a métricas y forecast;
+- [x] Dockerfile y Compose con volumen de artefactos;
+- [x] comando `build-all` end-to-end;
+- [x] monitorización de PSI, freshness, calibración y fairness regional;
+- [x] fallback naïve probado para forecast;
+- [x] data card, model card, caso de negocio y runbook operativo.
+
 ## Contratos para trabajo con agentes
 
 El trabajo se reparte por ownership de módulos, nunca por archivos compartidos:

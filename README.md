@@ -9,6 +9,25 @@ minorista sintético y determinista, carga una base SQLite con capas `raw`, `stg
 y produce métricas comerciales verificables. No presenta los datos sintéticos como
 evidencia real.
 
+## Producto completo con un comando
+
+```bash
+uv sync --extra dev
+uv run revenue-analytics build-all --output-dir runtime --seed 42 --profile demo
+RAP_ARTIFACT_DIR=runtime/predictive uv run uvicorn revenue_analytics.api:app \
+  --host 0.0.0.0 --port 8000
+```
+
+Abre `http://localhost:8000/dashboard` para el dashboard y
+`http://localhost:8000/docs` para OpenAPI/Swagger. El recorrido completo genera datos,
+warehouse, quality gate, informe, forecast, churn, segmentos, causalidad y monitoreo.
+
+Alternativa con contenedor, después de ejecutar `build-all`:
+
+```bash
+docker compose up --build
+```
+
 ## Primer recorrido (5 minutos)
 
 No requiere dependencias externas para ejecutar el pipeline:
@@ -59,6 +78,10 @@ PYTHONPATH=src python -m revenue_analytics demo --profile portfolio --output-dir
 - [Evidencia del Gate 1](docs/gates/gate-1.md)
 - [Evidencia predictiva v0.2](docs/gates/gate-2-predictive.md)
 - [Evidencia causal v0.3](docs/gates/gate-3-causal.md)
+- [Gate end-to-end](docs/gates/gate-4-product.md)
+- [Data card](docs/data-card.md)
+- [Model card](docs/model-card.md)
+- [Caso de negocio](docs/business-case.md)
 
 La entrega actual cubre el vertical slice foundation: generación, contratos, SQL,
 marts, consultas, validación e informe inicial. Forecasting, churn y causalidad se

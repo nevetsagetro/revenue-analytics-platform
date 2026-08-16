@@ -1,0 +1,11 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      RAP_ARTIFACT_DIR: /app/artifacts/predictive
+      RAP_CAUSAL_DIR: /app/artifacts/causal
+    volumes:
+      - ./runtime/predictive:/app/artifacts/predictive:ro
+      - ./runtime/causal:/app/artifacts/causal:ro
